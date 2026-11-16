@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block titulo %}Dispositivos{% endblock %}
+{% block trilha %}Dispositivos{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <div><h1>Dispositivos</h1><p>Modo de operação e conexão da estação RFID.</p></div>
+  <a href="{{ url_for('simulador') }}" class="botao secundario">Abrir simulador</a>
+</div>
+<div class="grade-painel">
+  <section class="painel-cartao">
+    <div class="painel-titulo"><h2>Modo de operação</h2></div>
+    <form action="{{ url_for('operacao') }}" method="post" class="formulario">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="modo-escolha">
+        <label class="modo-item"><input type="radio" name="modo" value="consulta" {{ 'checked' if estado.modo=='consulta' else '' }}><span><strong>Consulta</strong><small>Identifica a etiqueta sem movimentar o acervo.</small></span></label>
+        <label class="modo-item"><input type="radio" name="modo" value="emprestimo" {{ 'checked' if estado.modo=='emprestimo' else '' }}><span><strong>Empréstimo</strong><small>Lê o cartão e depois o livro.</small></span></label>
+        <label class="modo-item"><input type="radio" name="modo" value="devolucao" {{ 'checked' if estado.modo=='devolucao' else '' }}><span><strong>Devolução</strong><small>Lê o cartão e depois o livro.</small></span></label>
+      </div>
+      <button class="botao primario" type="submit">Salvar modo</button>
+    </form>
+  </section>
+  <section class="painel-cartao">
+    <div class="painel-titulo"><h2>Estações registradas</h2></div>
+    <div class="lista-dispositivos">
+      {% for dispositivo in dispositivos %}
+        <div class="dispositivo-linha"><strong>{{ dispositivo.identificador }}</strong><span class="estado neutro">Registrado</span><p>Último contato: {{ dispositivo.ultima_atividade }}{% if dispositivo.distancia_cm is not none %} · Distância: {{ dispositivo.distancia_cm }} cm{% endif %}</p></div>
+      {% else %}
+        <div class="vazio">Nenhuma estação conectada.</div>
+      {% endfor %}
+    </div>
+    <div class="dica">A identificação dos livros é feita pelo leitor RC522. A distância é apenas uma informação auxiliar do dispositivo.</div>
+  </section>
+</div>
+{% endblock %}

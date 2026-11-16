@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block titulo %}Simulador RFID{% endblock %}
+{% block trilha %}Simulador RFID{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <div><h1>Simulador RFID</h1><p>Teste leituras sem o dispositivo físico.</p></div>
+  <a href="{{ url_for('operacao') }}" class="botao secundario">Configurar modo</a>
+</div>
+<div class="grade-painel">
+  <section class="painel-cartao">
+    <div class="painel-titulo"><h2>Simular leitura</h2></div>
+    <div class="formulario">
+      <label>UID do cartão ou etiqueta<input id="uid-simulacao" placeholder="UID" autocomplete="off"></label>
+      <button id="enviar-simulacao" class="botao primario largura">Enviar leitura</button>
+      <div id="retorno-simulacao" class="retorno-simulacao" aria-live="polite">Aguardando leitura.</div>
+    </div>
+  </section>
+  <section class="painel-cartao">
+    <div class="painel-titulo"><div><h2>Identificadores cadastrados</h2><p>Selecione um registro para preencher o UID.</p></div></div>
+    <div class="lista-identificadores">
+      {% for registro in registros %}
+        <button class="identificador" type="button" data-uid={{ registro.uid|tojson }}><span><strong>{{ registro.codigo }}</strong><small>{{ registro.nome }}</small></span><span class="identificador-tipo">{{ 'Livro' if registro.tipo=='livro' else 'Cartão' }}</span></button>
+      {% else %}
+        <div class="vazio">Nenhum UID cadastrado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

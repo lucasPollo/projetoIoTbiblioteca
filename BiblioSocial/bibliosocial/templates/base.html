@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#0f2744">
+  <title>{% block titulo %}Painel{% endblock %} | BiblioSocial IoT</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+  <script defer src="{{ url_for('static', filename='js/aplicacao.js') }}"></script>
+</head>
+<body>
+<div class="estrutura">
+  <aside class="lateral" id="menu-lateral" aria-label="Navegação principal">
+    <a class="marca" href="{{ url_for('painel') }}">
+      <img class="logo-bibliosocial logo-menu" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+    </a>
+    <div class="rotulo-menu">Administração</div>
+    <nav class="navegacao">
+      <a class="{{ 'ativo' if request.endpoint=='painel' else '' }}" href="{{ url_for('painel') }}">Visão geral</a>
+      <a class="{{ 'ativo' if request.endpoint in ('livros','formulario_livro') else '' }}" href="{{ url_for('livros') }}">Livros</a>
+      <a class="{{ 'ativo' if request.endpoint in ('usuarios','formulario_usuario') else '' }}" href="{{ url_for('usuarios') }}">Usuários</a>
+      <a class="{{ 'ativo' if request.endpoint=='reservas' else '' }}" href="{{ url_for('reservas') }}">Reservas</a>
+      <a class="{{ 'ativo' if request.endpoint=='emprestimos' else '' }}" href="{{ url_for('emprestimos') }}">Empréstimos</a>
+      <a class="{{ 'ativo' if request.endpoint=='operacao' else '' }}" href="{{ url_for('operacao') }}">Dispositivos</a>
+    </nav>
+    <div class="rotulo-menu espaco-topo">Ferramentas</div>
+    <nav class="navegacao">
+      <a class="{{ 'ativo' if request.endpoint=='leituras' else '' }}" href="{{ url_for('leituras') }}">Leituras RFID</a>
+      <a class="{{ 'ativo' if request.endpoint=='simulador' else '' }}" href="{{ url_for('simulador') }}">Simulador</a>
+    </nav>
+    <div class="lateral-rodape">
+      <div class="usuario-atual">
+        <div class="avatar" aria-hidden="true">{{ session['administrador'][:1].upper() }}</div>
+        <div><strong>{{ session['administrador'] }}</strong><small>Administrador</small></div>
+      </div>
+      <form action="{{ url_for('sair') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="sair" type="submit">Sair</button>
+      </form>
+    </div>
+  </aside>
+  <div class="conteudo">
+    <header class="barra-topo">
+      <button class="botao-menu" type="button" aria-label="Abrir menu" aria-controls="menu-lateral" aria-expanded="false" id="alternar-menu">☰</button>
+      <strong>{% block trilha %}Visão geral{% endblock %}</strong>
+      <div class="topo-direita">BiblioSocial IoT</div>
+    </header>
+    <main class="area-principal">
+      {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% if mensagens %}
+          <section class="avisos" aria-live="polite">
+            {% for categoria, mensagem in mensagens %}<div class="aviso {{ categoria }}">{{ mensagem }}</div>{% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+      {% block conteudo %}{% endblock %}
+      <footer class="rodape-principal">BiblioSocial IoT · {{ ano_atual }}</footer>
+    </main>
+  </div>
+</div>
+<div class="fundo-menu" id="fundo-menu"></div>
+</body>
+</html>

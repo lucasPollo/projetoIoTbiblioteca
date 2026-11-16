@@ -1,0 +1,51 @@
+{% set capas_livros = {
+  'LIV001': 'img/livros/LIV001_codigo_limpo.png',
+  'LIV002': 'img/livros/LIV002_metodo_financeiro_primo_rico.png',
+  'LIV003': 'img/livros/LIV003_segredos_mente_milionaria.png',
+  'LIV004': 'img/livros/LIV004_como_fazer_amigos.png',
+  'LIV005': 'img/livros/LIV005_psicologia_financeira.png'
+} %}
+<div class="grade-livros">
+  {% for livro in catalogo %}
+    {% set capa_livro = capas_livros.get(livro.codigo) %}
+    <article class="livro-cartao">
+      {% if capa_livro %}
+        <div class="livro-capa-area">
+          <img class="livro-capa" src="{{ url_for('static', filename=capa_livro) }}" alt="Capa do livro {{ livro.titulo }}" loading="lazy" width="240" height="320">
+        </div>
+      {% endif %}
+      <div class="livro-corpo">
+        <div class="livro-meta">
+          <span class="livro-codigo">{{ livro.codigo }}</span>
+          <span class="categoria-livro">{{ livro.categoria }}</span>
+        </div>
+        <h3>{{ livro.titulo }}</h3>
+        <p class="livro-autor">{{ livro.autor or 'Autor não informado' }}</p>
+        <div class="livro-disponibilidade">
+          <span class="estado {{ 'positivo' if livro.situacao=='disponivel' else 'alerta' if livro.situacao=='reservado' else 'neutro' }}">{{ {'disponivel':'Disponível','reservado':'Reservado','emprestado':'Emprestado'}[livro.situacao] }}</span>
+        </div>
+        <button type="button" class="botao primario largura livro-reservar" aria-label="Reservar {{ livro.titulo|e }}" data-reservar-livro="{{ livro.id }}" data-titulo-livro="{{ livro.titulo|e }}" {{ 'disabled' if livro.situacao!='disponivel' or not livro.uid else '' }}>{{ 'Reservar' if livro.situacao=='disponivel' and livro.uid else 'Indisponível' }}</button>
+      </div>
+    </article>
+  {% else %}
+    <div class="vazio">Nenhum livro cadastrado.</div>
+  {% endfor %}
+</div>
+
+<div class="reserva-janela" id="reserva-janela" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-reserva">
+  <div class="reserva-caixa">
+    <div class="reserva-cabecalho">
+      <h2 id="titulo-reserva">Reservar livro</h2>
+      <button type="button" data-reserva-fechar class="botao fantasma" aria-label="Fechar reserva">Fechar</button>
+    </div>
+    <p id="reserva-livro-nome" class="reserva-livro"></p>
+    <div class="reserva-passos" aria-label="Etapas da reserva">
+      <div class="reserva-passo ativo" data-reserva-passo="1"><span>1</span>Livro selecionado</div>
+      <div class="reserva-passo" data-reserva-passo="2"><span>2</span>Aproxime a etiqueta</div>
+      <div class="reserva-passo" data-reserva-passo="3"><span>3</span>Aproxime seu cartão</div>
+    </div>
+    <div id="reserva-status" class="retorno-simulacao" aria-live="polite">Preparando a reserva.</div>
+    <p class="reserva-dica">A reserva será cancelada se a confirmação não for concluída em 150 segundos.</p>
+    <button type="button" class="botao secundario largura" data-reserva-fechar>Cancelar reserva</button>
+  </div>
+</div>

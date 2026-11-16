@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block titulo %}Reservas{% endblock %}
+{% block trilha %}Reservas{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <div><h1>Reservas</h1><p>Reservas confirmadas e retiradas.</p></div>
+  <a href="{{ url_for('catalogo_publico') }}" class="botao secundario">Abrir catálogo</a>
+</div>
+<section class="painel-cartao">
+  <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th>Livro</th><th>Usuário</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for reserva in reservas %}
+        <tr>
+          <td><strong>{{ reserva.titulo }}</strong><small>{{ reserva.codigo_livro }}</small></td>
+          <td><strong>{{ reserva.nome }}</strong><small>{{ reserva.codigo_usuario }}</small></td>
+          <td class="sem-quebra">{{ reserva.reservada_em }}</td>
+          <td><span class="estado {{ 'positivo' if reserva.situacao=='retirada' else 'alerta' if reserva.situacao=='ativa' else 'neutro' }}">{{ {'ativa':'Reservado','cancelada':'Cancelado','retirada':'Retirado'}[reserva.situacao] }}</span></td>
+          <td>
+          {% if reserva.situacao=='ativa' %}
+            <div class="acoes-reserva">
+              <form method="post" action="{{ url_for('retirar_reserva_admin', identificador=reserva.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="botao mini primario">Registrar retirada</button></form>
+              <form method="post" action="{{ url_for('cancelar_reserva_admin', identificador=reserva.id) }}" onsubmit="return confirm('Cancelar esta reserva?')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="botao mini secundario">Cancelar</button></form>
+            </div>
+          {% else %}—{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="vazio-tabela">Nenhuma reserva registrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

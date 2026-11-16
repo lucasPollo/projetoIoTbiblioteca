@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Editar livro' if livro else 'Cadastrar livro' }}{% endblock %}
+{% block trilha %}Livros / {{ 'Editar' if livro else 'Cadastrar' }}{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <div><h1>{{ 'Editar livro' if livro else 'Cadastrar livro' }}</h1><p>Dados bibliográficos e identificação NFC.</p></div>
+  <a href="{{ url_for('livros') }}" class="botao secundario">Voltar</a>
+</div>
+<section class="painel-cartao formulario-cartao">
+  <form method="post" class="formulario" data-form-captura="livro">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="grade-formulario">
+      <label>Código do livro<input name="codigo" value="{{ request.form.get('codigo', livro.codigo if livro else codigo_sugerido) }}" required maxlength="12"></label>
+      <label>Título<input name="titulo" value="{{ request.form.get('titulo', livro.titulo if livro else '') }}" maxlength="180" required></label>
+      <label>Autor<input name="autor" value="{{ request.form.get('autor', livro.autor if livro else '') }}" maxlength="120"></label>
+      <label>Categoria<input name="categoria" value="{{ request.form.get('categoria', livro.categoria if livro else '') }}" maxlength="80"></label>
+      <label>ISBN<input name="isbn" value="{{ request.form.get('isbn', livro.isbn if livro else '') }}" maxlength="30"></label>
+      <label>Localização<input name="localizacao" value="{{ request.form.get('localizacao', livro.localizacao if livro else '') }}" maxlength="80"></label>
+    </div>
+    <div class="grupo-uid">
+      <strong>Etiqueta NFC</strong>
+      <p>Informe o UID ou capture pela estação RFID.</p>
+      <div class="uid-controles">
+        <input name="uid" data-uid-alvo aria-label="UID da etiqueta" placeholder="UID da etiqueta" value="{{ request.form.get('uid', livro.uid if livro else '') or '' }}" maxlength="60">
+        <button class="botao secundario" type="button" data-acao="capturar">Ler etiqueta</button>
+      </div>
+      <p class="resultado-captura" aria-live="polite"></p>
+    </div>
+    <label>Observações<textarea rows="3" name="observacoes" maxlength="500">{{ request.form.get('observacoes', livro.observacoes if livro else '') }}</textarea></label>
+    <div class="acoes-formulario"><button class="botao primario" type="submit">Salvar livro</button><a class="botao fantasma" href="{{ url_for('livros') }}">Cancelar</a></div>
+  </form>
+  {% if livro %}
+    <form method="post" action="{{ url_for('excluir_livro', identificador=livro.id) }}" class="linha-exclusao" onsubmit="return confirm('Excluir este livro?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="link-perigo">Excluir livro</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

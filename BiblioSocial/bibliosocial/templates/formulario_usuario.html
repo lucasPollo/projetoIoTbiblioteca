@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Editar usuário' if usuario else 'Cadastrar usuário' }}{% endblock %}
+{% block trilha %}Usuários / {{ 'Editar' if usuario else 'Cadastrar' }}{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <div><h1>{{ 'Editar usuário' if usuario else 'Cadastrar usuário' }}</h1><p>Dados pessoais e cartão NFC.</p></div>
+  <a class="botao secundario" href="{{ url_for('usuarios') }}">Voltar</a>
+</div>
+<section class="painel-cartao formulario-cartao">
+  <form method="post" class="formulario" data-form-captura="usuario">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="grade-formulario">
+      <label>Código do cartão<input name="codigo" maxlength="12" required value="{{ request.form.get('codigo', usuario.codigo if usuario else codigo_sugerido) }}"></label>
+      <label>Nome completo<input name="nome" required maxlength="150" value="{{ request.form.get('nome', usuario.nome if usuario else '') }}"></label>
+      <label>E-mail<input type="email" name="email" maxlength="180" value="{{ request.form.get('email', usuario.email if usuario else '') }}"></label>
+      <label>Situação<select name="ativo"><option value="1" {{ 'selected' if not usuario or usuario.ativo else '' }}>Ativo</option><option value="0" {{ 'selected' if usuario and not usuario.ativo else '' }}>Inativo</option></select></label>
+    </div>
+    <div class="grupo-uid">
+      <strong>Cartão NFC</strong>
+      <p>Informe o UID ou capture pela estação RFID.</p>
+      <div class="uid-controles">
+        <input name="uid" data-uid-alvo aria-label="UID do cartão" placeholder="UID do cartão" value="{{ request.form.get('uid', usuario.uid if usuario else '') or '' }}" maxlength="60">
+        <button class="botao secundario" type="button" data-acao="capturar">Ler cartão</button>
+      </div>
+      <p class="resultado-captura" aria-live="polite"></p>
+    </div>
+    <div class="acoes-formulario"><button type="submit" class="botao primario">Salvar usuário</button><a href="{{ url_for('usuarios') }}" class="botao fantasma">Cancelar</a></div>
+  </form>
+  {% if usuario %}
+    <form method="post" action="{{ url_for('excluir_usuario', identificador=usuario.id) }}" class="linha-exclusao" onsubmit="return confirm('Excluir este usuário?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="link-perigo" type="submit">Excluir usuário</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

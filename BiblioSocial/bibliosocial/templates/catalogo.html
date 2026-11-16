@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#0f2744">
+  <title>Catálogo | BiblioSocial IoT</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+  <script defer src="{{ url_for('static', filename='js/aplicacao.js') }}"></script>
+</head>
+<body class="catalogo-publico">
+  <header class="catalogo-cabecalho">
+    <nav class="catalogo-navegacao" aria-label="Navegação do catálogo">
+      <img class="logo-bibliosocial logo-catalogo" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+      <a class="botao secundario" href="{{ url_for('login') }}">Área administrativa</a>
+    </nav>
+    <div class="catalogo-apresentacao">
+      <h1>Catálogo de livros</h1>
+      <p>Selecione um livro disponível para reservar.</p>
+    </div>
+  </header>
+  <main class="catalogo-corpo">{% include '_cards_livros.html' %}</main>
+</body>
+</html>

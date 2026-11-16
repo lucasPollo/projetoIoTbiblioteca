@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar | BiblioSocial IoT</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+</head>
+<body class="fundo-login">
+  <main class="login-caixa">
+    <img class="logo-bibliosocial logo-login" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+    <h1>Acesso administrativo</h1>
+    <p>Entre para gerenciar o acervo e as operações.</p>
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% for categoria, mensagem in mensagens %}<div class="aviso {{ categoria }}">{{ mensagem }}</div>{% endfor %}
+    {% endwith %}
+    {% if configurado %}
+      <form action="{{ url_for('login') }}" method="post" class="formulario login-formulario">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Usuário<input name="usuario" autocomplete="username" required autofocus></label>
+        <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
+        <button class="botao primario largura" type="submit">Entrar</button>
+      </form>
+    {% else %}
+      <div class="info-configuracao">Execute <code>python configurar.py</code> para criar o primeiro administrador.</div>
+    {% endif %}
+  </main>
+</body>
+</html>
