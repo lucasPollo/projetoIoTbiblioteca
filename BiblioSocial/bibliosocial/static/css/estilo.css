@@ -151,6 +151,22 @@ tbody tr:last-child td { border-bottom: 0; }
 .retorno-simulacao { min-height: 48px; padding: 12px; border: 1px solid var(--linha); border-radius: 7px; color: #475569; background: #f8fafc; font-size: 12px; }
 .retorno-simulacao.erro { border-color: #fda29b; color: #912018; background: #fff5f4; }
 .retorno-simulacao.sucesso { border-color: #86d5b5; color: #05603a; background: #f0fdf6; }
+.alternador-simulacao { display: flex !important; align-items: flex-start; gap: 10px; padding: 13px; border: 1px solid #bfdbfe; border-radius: 7px; background: var(--azul-suave); }
+.alternador-simulacao input { width: 18px; min-height: 18px; margin: 1px 0 0; accent-color: var(--azul); }
+.alternador-simulacao span { min-width: 0; }
+.alternador-simulacao strong, .alternador-simulacao small { display: block; }
+.alternador-simulacao small { margin-top: 2px; color: #64748b; font-weight: 400; }
+.status-configuracao { min-height: 17px; margin: -12px 0 0; color: #64748b; font-size: 11px; }
+
+.grade-testes-dispositivo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.teste-dispositivo { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 16px; padding: 14px; border: 1px solid var(--linha); border-radius: 7px; background: #fff; }
+.teste-dispositivo strong, .teste-dispositivo small { display: block; }
+.teste-dispositivo strong { color: #1e293b; font-size: 12px; }
+.teste-dispositivo small { margin-top: 2px; color: #64748b; font-size: 11px; }
+.estado-comando { grid-column: 1 / -1; min-height: 19px; color: #64748b; font-size: 11px; font-weight: 650; }
+.estado-comando.pendente, .estado-comando.entregue { color: var(--alerta); }
+.estado-comando.executado { color: var(--sucesso); }
+.estado-comando.expirado, .estado-comando.falhou { color: var(--perigo); }
 
 .avisos { display: grid; gap: 8px; margin-bottom: 18px; }
 .aviso { padding: 10px 12px; border: 1px solid; border-radius: 7px; font-size: 12px; }
@@ -244,6 +260,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .reserva-passo { grid-template-columns: auto 1fr; align-items: center; }
   .catalogo-apresentacao { padding-top: 20px; }
   .catalogo-apresentacao h1 { font-size: 23px; }
+  .grade-testes-dispositivo { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -260,4 +277,6 @@ tbody tr:last-child td { border-bottom: 0; }
   .login-caixa { padding: 26px 20px; }
   .catalogo-navegacao { padding: 14px 16px; }
   .catalogo-apresentacao, .catalogo-corpo { padding-right: 16px; padding-left: 16px; }
+  .teste-dispositivo { grid-template-columns: 1fr; }
+  .teste-dispositivo .botao { width: 100%; }
 }

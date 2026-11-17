@@ -9,13 +9,14 @@
 <section class="painel-cartao">
   <div class="tabela-rolagem">
     <table>
-      <thead><tr><th>Livro</th><th>Usuário</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead>
+      <thead><tr><th>Livro</th><th>Usuário</th><th>Data</th><th>Origem</th><th>Situação</th><th>Ações</th></tr></thead>
       <tbody>
       {% for reserva in reservas %}
         <tr>
           <td><strong>{{ reserva.titulo }}</strong><small>{{ reserva.codigo_livro }}</small></td>
           <td><strong>{{ reserva.nome }}</strong><small>{{ reserva.codigo_usuario }}</small></td>
           <td class="sem-quebra">{{ reserva.reservada_em }}</td>
+          <td>{{ 'Simulação' if reserva.origem=='simulacao' else 'RFID físico' if reserva.origem=='rfid' else reserva.origem|title }}</td>
           <td><span class="estado {{ 'positivo' if reserva.situacao=='retirada' else 'alerta' if reserva.situacao=='ativa' else 'neutro' }}">{{ {'ativa':'Reservado','cancelada':'Cancelado','retirada':'Retirado'}[reserva.situacao] }}</span></td>
           <td>
           {% if reserva.situacao=='ativa' %}
@@ -27,7 +28,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="vazio-tabela">Nenhuma reserva registrada.</td></tr>
+        <tr><td colspan="6" class="vazio-tabela">Nenhuma reserva registrada.</td></tr>
       {% endfor %}
       </tbody>
     </table>

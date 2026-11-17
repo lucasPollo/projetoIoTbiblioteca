@@ -84,6 +84,29 @@
   const campo_simulacao = document.getElementById('uid-simulacao');
   const botao_simulacao = document.getElementById('enviar-simulacao');
   const retorno_simulacao = document.getElementById('retorno-simulacao');
+  const alternador_sinalizacao = document.getElementById('sinalizacao-fisica-simulacao');
+  const status_sinalizacao = document.getElementById('status-sinalizacao-simulacao');
+
+  alternador_sinalizacao?.addEventListener('change', async () => {
+    const valor_anterior = !alternador_sinalizacao.checked;
+    alternador_sinalizacao.disabled = true;
+    if (status_sinalizacao) status_sinalizacao.textContent = 'Salvando configuração...';
+    try {
+      const retorno = await requisitar('/api/configuracoes/sinalizacao-simulacao', 'POST', {
+        ativa: alternador_sinalizacao.checked
+      });
+      if (status_sinalizacao) {
+        status_sinalizacao.textContent = retorno.ativa
+          ? 'Sinalização física ativada.'
+          : 'Sinalização física desativada.';
+      }
+    } catch (erro) {
+      alternador_sinalizacao.checked = valor_anterior;
+      if (status_sinalizacao) status_sinalizacao.textContent = erro.message;
+    } finally {
+      alternador_sinalizacao.disabled = false;
+    }
+  });
 
   for (const identificador of document.querySelectorAll('[data-uid]')) {
     identificador.addEventListener('click', () => {
@@ -98,7 +121,12 @@
     definir_carregamento(botao_simulacao, true, 'Enviando...');
     try {
       const resultado = await requisitar('/api/simulacao/leitura', 'POST', { uid: campo_simulacao.value.trim() });
-      retorno_simulacao.textContent = resultado.mensagem || 'Leitura enviada.';
+      const sufixo_fisico = resultado.comando_id
+        ? ' Sinal físico pendente na fila da ESP32.'
+        : resultado.sinalizacao_fisica === 'falhou'
+          ? ' A operação foi concluída, mas não foi possível enfileirar o sinal físico.'
+          : '';
+      retorno_simulacao.textContent = 'Leitura simulada: ' + (resultado.mensagem || 'enviada.') + sufixo_fisico;
       retorno_simulacao.className = 'retorno-simulacao ' + (resultado.resultado === 'erro' ? 'erro' : 'sucesso');
     } catch (erro) {
       retorno_simulacao.textContent = erro.message;
@@ -107,6 +135,65 @@
       definir_carregamento(botao_simulacao, false);
     }
   });
+
+  const rotulos_comando = {
+    pendente: 'Pendente',
+    entregue: 'Pendente · recebido pela ESP32',
+    executado: 'Executado',
+    expirado: 'Expirado',
+    falhou: 'Falhou'
+  };
+
+  const exibir_status_comando = (elemento, comando) => {
+    if (!elemento || !comando) return;
+    elemento.textContent = rotulos_comando[comando.estado] || comando.estado;
+    elemento.className = 'estado-comando ' + comando.estado;
+    if (comando.detalhe) elemento.title = comando.detalhe;
+  };
+
+  const acompanhar_comando = async (comando_inicial, elemento) => {
+    let comando = comando_inicial;
+    exibir_status_comando(elemento, comando);
+    while (!['executado', 'expirado', 'falhou'].includes(comando.estado)) {
+      await new Promise(resolver => setTimeout(resolver, 2000));
+      try {
+        const retorno = await requisitar('/api/comandos/' + encodeURIComponent(comando.id), 'GET');
+        comando = retorno.comando;
+        exibir_status_comando(elemento, comando);
+      } catch (_) {
+        if (elemento) {
+          elemento.textContent = 'Pendente · reconectando ao servidor';
+          elemento.className = 'estado-comando pendente';
+        }
+      }
+      if (Date.now() / 1000 > Number(comando.expira_em || 0) + 15) {
+        if (elemento && !['executado', 'falhou'].includes(comando.estado)) {
+          elemento.textContent = 'Expirado';
+          elemento.className = 'estado-comando expirado';
+        }
+        break;
+      }
+    }
+  };
+
+  for (const botao of document.querySelectorAll('[data-comando-dispositivo]')) {
+    botao.addEventListener('click', async () => {
+      const tipo = botao.dataset.comandoDispositivo;
+      const status = document.querySelector(`[data-status-comando="${tipo}"]`);
+      definir_carregamento(botao, true, 'Enviando...');
+      try {
+        const retorno = await requisitar('/api/comandos', 'POST', { tipo });
+        await acompanhar_comando(retorno.comando, status);
+      } catch (erro) {
+        if (status) {
+          status.textContent = 'Falhou: ' + erro.message;
+          status.className = 'estado-comando falhou';
+        }
+      } finally {
+        definir_carregamento(botao, false);
+      }
+    });
+  }
 
   const janela_reserva = document.getElementById('reserva-janela');
   const status_reserva = document.getElementById('reserva-status');

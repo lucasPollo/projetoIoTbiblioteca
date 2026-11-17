@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 ORIGEM = Path(__file__).resolve().parents[1] / 'dados' / 'bibliosocial.db'
+ESQUEMA = Path(__file__).resolve().parents[1] / 'bibliosocial' / 'esquema.sql'
 
 
 class TestesBanco(unittest.TestCase):
@@ -36,6 +37,24 @@ class TestesBanco(unittest.TestCase):
         self.conexao.execute('INSERT INTO emprestimos(livro_id,usuario_id) VALUES(?,?)', (livro_id,usuario_id))
         with self.assertRaises(sqlite3.IntegrityError):
             self.conexao.execute('INSERT INTO emprestimos(livro_id,usuario_id) VALUES(?,?)', (livro_id,usuario_id))
+
+    def test_migracao_aditiva_preserva_dados(self):
+        tabelas = ('livros', 'usuarios', 'emprestimos', 'reservas', 'leituras')
+        contagens_antes = {
+            tabela: self.conexao.execute(f'SELECT COUNT(*) FROM {tabela}').fetchone()[0]
+            for tabela in tabelas
+        }
+        self.conexao.executescript(ESQUEMA.read_text(encoding='utf-8'))
+        contagens_depois = {
+            tabela: self.conexao.execute(f'SELECT COUNT(*) FROM {tabela}').fetchone()[0]
+            for tabela in tabelas
+        }
+        self.assertEqual(contagens_depois, contagens_antes)
+        self.assertEqual(self.conexao.execute('PRAGMA user_version').fetchone()[0], 3)
+        self.assertEqual(self.conexao.execute('PRAGMA integrity_check').fetchone()[0], 'ok')
+        novas = self.conexao.execute("""SELECT COUNT(*) FROM sqlite_master
+            WHERE type='table' AND name IN ('comandos_dispositivo','configuracoes')""").fetchone()[0]
+        self.assertEqual(novas, 2)
 
 
 if __name__ == '__main__':

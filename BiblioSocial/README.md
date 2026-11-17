@@ -138,12 +138,44 @@ O dispositivo deve informar a chave gerada na configuração no cabeçalho `X-Ch
 - `POST /api/dispositivo/leitura`: `{"uid":"04...","evento_id":"evento-unico","dispositivo":"esp32-principal"}`
 - `POST /api/dispositivo/telemetria`: `{"dispositivo":"esp32-principal","distancia_cm":12.5}`
 - `GET /api/dispositivo/estado`: modo da estação
+- `GET /api/dispositivo/comandos/proximo?dispositivo=esp32-principal`: próximo comando físico
+- `POST /api/dispositivo/comandos/<id>/confirmar`: confirmação com
+  `{"dispositivo":"esp32-principal","resultado":"executado|falhou","detalhe":"..."}`
 
 O servidor retorna `resultado` (`ok`, `aguardando`, `consulta`, `capturado`, `erro`) e uma `mensagem` para aparecer no monitor serial e acionar os LEDs.
 
 Para evitar eventos duplicados, o backend armazena `evento_id` e devolve a mesma resposta ao receber o mesmo identificador novamente. A gravação utiliza transações SQLite para proteger a consistência de empréstimos simultâneos.
 
-## 7. Testes e limites
+Os comandos físicos aceitos são `led_verde`, `led_vermelho`, `buzzer`,
+`sinal_sucesso` e `sinal_erro`. Cada comando tem ID único, expira e permanece
+como o único item entregue ao dispositivo até a confirmação. A implementação
+externa da ESP32 deve persistir o último ID concluído e, se o receber novamente,
+reenviar apenas a confirmação sem repetir o acionamento. O contrato detalhado
+está em `documentos/contrato_comandos_esp32.md`.
+
+## 7. Testes físicos e simulações
+
+No menu **Dispositivos**, a seção **Testes do dispositivo** cria comandos na
+fila. A tela distingue os estados pendente, executado, expirado e falhou. Apenas
+administradores autenticados podem criar ou consultar esses comandos; a chave da
+ESP32 nunca é enviada ao HTML ou JavaScript.
+
+No **Simulador**, a opção **Ativar sinalização física nas simulações** é
+persistida no SQLite. Quando ativa, uma operação simulada bem-sucedida cria
+`sinal_sucesso` e uma falha cria `sinal_erro`. Reservas concluídas por essa tela
+ficam com origem `simulacao`, visível no painel de Reservas.
+
+Configurações não secretas disponíveis no ambiente:
+
+- `DISPOSITIVO_PADRAO` (padrão: `esp32-principal`)
+- `PRAZO_COMANDO_SEGUNDOS` (padrão: `45`, limitado entre 10 e 300)
+
+A migração para a versão 3 do schema é automática e aditiva: cria somente
+`comandos_dispositivo`, `configuracoes` e seus índices. O startup Flask e
+`preparar_railway.py` executam `esquema.sql` sem apagar livros, usuários,
+reservas, empréstimos ou leituras existentes.
+
+## 8. Testes e limites
 
 Após instalar as dependências no seu computador, rode:
 

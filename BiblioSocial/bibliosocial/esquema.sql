@@ -175,4 +175,34 @@ INNER JOIN livros l ON l.id = e.livro_id
 INNER JOIN usuarios u ON u.id = e.usuario_id
 WHERE e.devolvido_em IS NULL;
 
-PRAGMA user_version = 2;
+-- Fila persistente usada pelo polling HTTPS da ESP32. Esta migração é
+-- exclusivamente aditiva e não altera os registros das tabelas existentes.
+CREATE TABLE IF NOT EXISTS comandos_dispositivo (
+  id TEXT PRIMARY KEY,
+  dispositivo TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('led_verde','led_vermelho','buzzer','sinal_sucesso','sinal_erro')),
+  estado TEXT NOT NULL DEFAULT 'pendente'
+    CHECK (estado IN ('pendente','entregue','executado','falhou','expirado')),
+  origem TEXT NOT NULL DEFAULT 'painel' CHECK (origem IN ('painel','simulacao')),
+  criado_por TEXT,
+  criado_em INTEGER NOT NULL,
+  expira_em INTEGER NOT NULL,
+  entregue_em INTEGER,
+  concluido_em INTEGER,
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  detalhe TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_comandos_dispositivo_fila
+  ON comandos_dispositivo(dispositivo,estado,criado_em);
+CREATE INDEX IF NOT EXISTS idx_comandos_dispositivo_expiracao
+  ON comandos_dispositivo(estado,expira_em);
+
+CREATE TABLE IF NOT EXISTS configuracoes (
+  chave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
+INSERT OR IGNORE INTO configuracoes(chave,valor)
+  VALUES('sinalizacao_fisica_simulacao','0');
+
+PRAGMA user_version = 3;

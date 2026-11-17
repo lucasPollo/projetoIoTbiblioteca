@@ -31,4 +31,63 @@
     <div class="dica">A identificação dos livros é feita pelo leitor RC522. A distância é apenas uma informação auxiliar do dispositivo.</div>
   </section>
 </div>
+
+<section class="painel-cartao espaco-topo" aria-labelledby="titulo-testes-dispositivo">
+  <div class="painel-titulo">
+    <div>
+      <h2 id="titulo-testes-dispositivo">Testes do dispositivo</h2>
+      <p>Os comandos ficam na fila até a estação <code>{{ dispositivo_padrao }}</code> consultar o servidor.</p>
+    </div>
+  </div>
+  <div class="grade-testes-dispositivo">
+    <div class="teste-dispositivo">
+      <div><strong>LED verde</strong><small>Acende o LED verde por 2 segundos.</small></div>
+      <button type="button" class="botao secundario" data-comando-dispositivo="led_verde">Testar LED verde</button>
+      <span class="estado-comando" data-status-comando="led_verde" aria-live="polite">Pronto</span>
+    </div>
+    <div class="teste-dispositivo">
+      <div><strong>LED vermelho</strong><small>Acende o LED vermelho por 2 segundos.</small></div>
+      <button type="button" class="botao secundario" data-comando-dispositivo="led_vermelho">Testar LED vermelho</button>
+      <span class="estado-comando" data-status-comando="led_vermelho" aria-live="polite">Pronto</span>
+    </div>
+    <div class="teste-dispositivo">
+      <div><strong>Buzzer</strong><small>Emite dois bipes curtos.</small></div>
+      <button type="button" class="botao secundario" data-comando-dispositivo="buzzer">Testar buzzer</button>
+      <span class="estado-comando" data-status-comando="buzzer" aria-live="polite">Pronto</span>
+    </div>
+    <div class="teste-dispositivo">
+      <div><strong>Sinal de sucesso</strong><small>LED verde e dois bipes agudos.</small></div>
+      <button type="button" class="botao primario" data-comando-dispositivo="sinal_sucesso">Testar sucesso</button>
+      <span class="estado-comando" data-status-comando="sinal_sucesso" aria-live="polite">Pronto</span>
+    </div>
+    <div class="teste-dispositivo">
+      <div><strong>Sinal de erro</strong><small>LED vermelho e dois bipes graves.</small></div>
+      <button type="button" class="botao secundario" data-comando-dispositivo="sinal_erro">Testar erro</button>
+      <span class="estado-comando" data-status-comando="sinal_erro" aria-live="polite">Pronto</span>
+    </div>
+  </div>
+  <p class="dica">Pendente significa que o Railway ainda aguarda a confirmação da ESP32. Um comando não confirmado dentro do prazo configurado expira automaticamente.</p>
+</section>
+
+<section class="painel-cartao espaco-topo">
+  <div class="painel-titulo"><h2>Comandos recentes</h2></div>
+  <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th>Comando</th><th>Origem</th><th>Dispositivo</th><th>Status</th><th>Detalhe</th></tr></thead>
+      <tbody>
+      {% for comando in comandos %}
+        <tr>
+          <td><strong>{{ comando.tipo|replace('_',' ')|title }}</strong><small><code>{{ comando.id[:10] }}…</code></small></td>
+          <td>{{ 'Simulação' if comando.origem=='simulacao' else 'Painel' }}</td>
+          <td><code>{{ comando.dispositivo }}</code></td>
+          <td><span class="estado {{ 'positivo' if comando.estado=='executado' else 'alerta' if comando.estado in ('pendente','entregue') else 'inativo' }}">{{ {'pendente':'Pendente','entregue':'Pendente','executado':'Executado','expirado':'Expirado','falhou':'Falhou'}[comando.estado] }}</span></td>
+          <td>{{ comando.detalhe or '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="vazio-tabela">Nenhum comando enviado.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

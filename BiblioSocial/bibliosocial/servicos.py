@@ -160,7 +160,7 @@ def cancelar_reserva(conexao, reserva_id: int) -> None:
     conexao.execute("UPDATE reservas SET situacao='cancelada', encerrada_em=datetime('now') WHERE id=?", (reserva_id,))
 
 
-def processar_etapa_reserva(conexao, sessao, livro, usuario, agora: int) -> dict:
+def processar_etapa_reserva(conexao, sessao, livro, usuario, agora: int, origem: str = "rfid") -> dict:
     """Valida a ordem livro→cartão; só grava a reserva após as duas leituras."""
     livro_registrado = consultar_um(conexao, 'SELECT codigo,titulo FROM livros WHERE id=?', (sessao['livro_id'],))
     if sessao['estado'] == 'aguardando_livro':
@@ -180,8 +180,8 @@ def processar_etapa_reserva(conexao, sessao, livro, usuario, agora: int) -> dict
         return {'resultado':'erro','acao':'alerta','mensagem':'Este cartão pertence a um usuário inativo.'}
     try:
         verificar_livro_disponivel(conexao, sessao['livro_id'])
-        cursor = conexao.execute("INSERT INTO reservas(livro_id,usuario_id,situacao,origem) VALUES(?,?,'ativa','rfid')",
-                                 (sessao['livro_id'],usuario['id']))
+        cursor = conexao.execute("INSERT INTO reservas(livro_id,usuario_id,situacao,origem) VALUES(?,?,'ativa',?)",
+                                 (sessao['livro_id'],usuario['id'],origem))
         mensagem = f"Reserva confirmada: {livro_registrado['titulo']} para {usuario['codigo']}."
         conexao.execute("UPDATE sessoes_reserva SET estado='concluida',reserva_id=?,mensagem=? WHERE id=?",
                         (cursor.lastrowid,mensagem,sessao['id']))
@@ -287,7 +287,10 @@ def processar_leitura(conexao, uid_bruto: str, evento_id: str = "", dispositivo:
             resposta = {"resultado": "capturado", "acao": "confirmacao", "mensagem": "UID capturado para cadastro.", "uid": uid}
         elif sessao_reserva:
             livro, usuario = identificar_uid(conexao, uid)
-            resposta = processar_etapa_reserva(conexao, sessao_reserva, livro, usuario, agora)
+            origem_reserva = "simulacao" if dispositivo == "simulador-painel" else "rfid"
+            resposta = processar_etapa_reserva(
+                conexao, sessao_reserva, livro, usuario, agora, origem_reserva
+            )
         else:
             livro, usuario = identificar_uid(conexao, uid)
             estado = consultar_um(conexao, "SELECT * FROM estado_operacao WHERE id=1")

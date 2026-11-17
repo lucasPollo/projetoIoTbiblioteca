@@ -8,11 +8,16 @@
 </div>
 <div class="grade-painel">
   <section class="painel-cartao">
-    <div class="painel-titulo"><h2>Simular leitura</h2></div>
+    <div class="painel-titulo"><div><h2>Simular leitura</h2><p>As operações desta tela são registradas como simulação, não como leitura física.</p></div></div>
     <div class="formulario">
+      <label class="alternador-simulacao">
+        <input id="sinalizacao-fisica-simulacao" type="checkbox" {{ 'checked' if sinalizacao_fisica else '' }}>
+        <span><strong>Ativar sinalização física nas simulações</strong><small>Envia sucesso ou erro à ESP32 pela fila HTTPS.</small></span>
+      </label>
+      <p id="status-sinalizacao-simulacao" class="status-configuracao" aria-live="polite">{{ 'Sinalização física ativada.' if sinalizacao_fisica else 'Sinalização física desativada.' }}</p>
       <label>UID do cartão ou etiqueta<input id="uid-simulacao" placeholder="UID" autocomplete="off"></label>
       <button id="enviar-simulacao" class="botao primario largura">Enviar leitura</button>
-      <div id="retorno-simulacao" class="retorno-simulacao" aria-live="polite">Aguardando leitura.</div>
+      <div id="retorno-simulacao" class="retorno-simulacao" aria-live="polite">Aguardando leitura simulada.</div>
     </div>
   </section>
   <section class="painel-cartao">

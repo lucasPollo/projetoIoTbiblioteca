@@ -18,6 +18,11 @@ from flask import (Flask, Response, abort, flash, jsonify, redirect,
 from werkzeug.security import check_password_hash
 
 from .banco import fechar_banco, inicializar_banco, obter_banco
+from .comandos import (
+    ErroComando, confirmar_comando, consultar_comando, criar_comando,
+    definir_sinalizacao_simulacao, entregar_proximo_comando, expirar_comandos,
+    normalizar_dispositivo, sinalizacao_simulacao_ativa,
+)
 from .servicos import (
     ErroNegocio, consultar_captura, criar_livro, criar_usuario, devolver_livro,
     emprestar_livro, informar_telemetria, iniciar_captura, mudar_modo,
@@ -28,6 +33,13 @@ from .servicos import (
 RAIZ = Path(__file__).resolve().parent.parent
 
 
+def _inteiro_ambiente(nome: str, padrao: int) -> int:
+    try:
+        return int(os.getenv(nome, str(padrao)))
+    except (TypeError, ValueError):
+        return padrao
+
+
 def criar_aplicacao(configuracao: dict | None = None) -> Flask:
     load_dotenv(RAIZ / '.env')
     aplicacao = Flask(__name__, template_folder='templates', static_folder='static')
@@ -35,6 +47,8 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
     aplicacao.config.update(
         SECRET_KEY=os.getenv('CHAVE_SESSAO', ''),
         CHAVE_DISPOSITIVO=os.getenv('CHAVE_DISPOSITIVO', ''),
+        DISPOSITIVO_PADRAO=os.getenv('DISPOSITIVO_PADRAO', 'esp32-principal').strip() or 'esp32-principal',
+        PRAZO_COMANDO_SEGUNDOS=_inteiro_ambiente('PRAZO_COMANDO_SEGUNDOS', 45),
         CAMINHO_BANCO=str((RAIZ / caminho).resolve()) if not Path(caminho).is_absolute() else caminho,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
@@ -44,6 +58,12 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
     )
     if configuracao:
         aplicacao.config.update(configuracao)
+    aplicacao.config['DISPOSITIVO_PADRAO'] = normalizar_dispositivo(
+        aplicacao.config['DISPOSITIVO_PADRAO']
+    )
+    aplicacao.config['PRAZO_COMANDO_SEGUNDOS'] = max(
+        10, min(int(aplicacao.config['PRAZO_COMANDO_SEGUNDOS']), 300)
+    )
     if not aplicacao.config.get('TESTING'):
         for chave in ('SECRET_KEY', 'CHAVE_DISPOSITIVO'):
             texto = str(aplicacao.config.get(chave, ''))
@@ -71,6 +91,13 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
                 return jsonify(erro='Chave da ESP32 inválida.'), 401
             return funcao(*argumentos, **opcoes)
         return interna
+
+    def resposta_comando(comando: dict) -> dict:
+        campos = (
+            'id', 'dispositivo', 'tipo', 'estado', 'origem', 'criado_em',
+            'expira_em', 'entregue_em', 'concluido_em', 'detalhe',
+        )
+        return {campo: comando.get(campo) for campo in campos}
 
     @aplicacao.before_request
     def verificar_csrf():
@@ -383,9 +410,18 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
                 flash(str(erro), 'erro')
             return redirect(url_for('operacao'))
         estado = banco.execute('SELECT * FROM estado_operacao WHERE id=1').fetchone()
+        with banco:
+            expirar_comandos(banco)
         dispositivos = banco.execute('SELECT * FROM dispositivos ORDER BY ultima_atividade DESC').fetchall()
+        comandos = banco.execute(
+            'SELECT * FROM comandos_dispositivo ORDER BY criado_em DESC,id DESC LIMIT 12'
+        ).fetchall()
         ultima = banco.execute('SELECT * FROM leituras ORDER BY id DESC LIMIT 1').fetchone()
-        return render_template('operacao.html', estado=estado, dispositivos=dispositivos, ultima=ultima)
+        return render_template(
+            'operacao.html', estado=estado, dispositivos=dispositivos,
+            ultima=ultima, comandos=comandos,
+            dispositivo_padrao=aplicacao.config['DISPOSITIVO_PADRAO'],
+        )
 
     @aplicacao.get('/simulador')
     @exigir_login
@@ -393,18 +429,102 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
         banco = obter_banco()
         registros = banco.execute('''SELECT codigo,titulo AS nome,uid,'livro' AS tipo FROM livros WHERE uid IS NOT NULL
             UNION ALL SELECT codigo,nome,uid,'usuario' FROM usuarios WHERE uid IS NOT NULL ORDER BY tipo,codigo''').fetchall()
-        return render_template('simulador.html', registros=registros)
+        return render_template(
+            'simulador.html', registros=registros,
+            sinalizacao_fisica=sinalizacao_simulacao_ativa(banco),
+        )
 
     @aplicacao.post('/api/simulacao/leitura')
     @exigir_login
     def simular_leitura():
         dados = request.get_json(silent=True) or {}
+        banco = obter_banco()
+        sinalizacao_ativa = sinalizacao_simulacao_ativa(banco)
+
+        def enfileirar_sinal(tipo: str) -> dict | None:
+            if not sinalizacao_ativa:
+                return None
+            try:
+                with banco:
+                    return criar_comando(
+                        banco, tipo, aplicacao.config['DISPOSITIVO_PADRAO'],
+                        origem='simulacao', criado_por=session.get('administrador'),
+                        prazo_segundos=aplicacao.config['PRAZO_COMANDO_SEGUNDOS'],
+                    )
+            except (ErroComando, sqlite3.Error):
+                aplicacao.logger.exception('Não foi possível enfileirar o sinal da simulação.')
+                return {'id': None, 'estado': 'falhou'}
+
         try:
-            resposta = processar_leitura(obter_banco(), dados.get('uid'),
+            resposta = processar_leitura(banco, dados.get('uid'),
                                         evento_id='sim-' + secrets.token_hex(10), dispositivo='simulador-painel')
+            comando = None
+            if resposta.get('resultado') == 'ok':
+                comando = enfileirar_sinal('sinal_sucesso')
+            elif resposta.get('resultado') == 'erro':
+                comando = enfileirar_sinal('sinal_erro')
+            resposta['simulacao'] = True
+            resposta['sinalizacao_fisica'] = (
+                comando['estado'] if comando else
+                ('nao_aplicavel' if sinalizacao_ativa else 'desativada')
+            )
+            if comando:
+                resposta['comando_id'] = comando['id']
+            if resposta.get('resultado') == 'ok' and resposta.get('mensagem', '').startswith('Reserva confirmada:'):
+                resposta['reserva_simulada'] = True
+                resposta['mensagem'] = resposta['mensagem'].replace(
+                    'Reserva confirmada:', 'Reserva realizada por simulação:', 1
+                )
             return jsonify(resposta)
         except ErroNegocio as erro:
+            comando = enfileirar_sinal('sinal_erro')
+            return jsonify(
+                erro=str(erro), simulacao=True,
+                sinalizacao_fisica=(
+                    comando['estado'] if comando else
+                    ('nao_aplicavel' if sinalizacao_ativa else 'desativada')
+                ),
+                comando_id=comando['id'] if comando else None,
+            ), 400
+
+    @aplicacao.post('/api/configuracoes/sinalizacao-simulacao')
+    @exigir_login
+    def configurar_sinalizacao_simulacao():
+        dados = request.get_json(silent=True)
+        if not isinstance(dados, dict) or not isinstance(dados.get('ativa'), bool):
+            return jsonify(erro='Informe o campo booleano "ativa".'), 400
+        banco = obter_banco()
+        with banco:
+            definir_sinalizacao_simulacao(banco, dados['ativa'])
+        return jsonify(ativa=dados['ativa'])
+
+    @aplicacao.post('/api/comandos')
+    @exigir_login
+    def criar_comando_painel():
+        dados = request.get_json(silent=True)
+        if not isinstance(dados, dict):
+            return jsonify(erro='Envie objeto JSON.'), 400
+        try:
+            banco = obter_banco()
+            with banco:
+                comando = criar_comando(
+                    banco, dados.get('tipo'), aplicacao.config['DISPOSITIVO_PADRAO'],
+                    origem='painel', criado_por=session.get('administrador'),
+                    prazo_segundos=aplicacao.config['PRAZO_COMANDO_SEGUNDOS'],
+                )
+            return jsonify(comando=resposta_comando(comando)), 202
+        except (ErroComando, TypeError, ValueError) as erro:
             return jsonify(erro=str(erro)), 400
+
+    @aplicacao.get('/api/comandos/<identificador>')
+    @exigir_login
+    def status_comando_painel(identificador):
+        banco = obter_banco()
+        with banco:
+            comando = consultar_comando(banco, identificador)
+        if comando is None:
+            return jsonify(erro='Comando não encontrado.'), 404
+        return jsonify(comando=resposta_comando(comando))
 
     @aplicacao.post('/api/captura/iniciar')
     @exigir_login
@@ -480,6 +600,44 @@ def criar_aplicacao(configuracao: dict | None = None) -> Flask:
         banco = obter_banco()
         estado = banco.execute('SELECT modo FROM estado_operacao WHERE id=1').fetchone()
         return jsonify(modo=estado['modo'], nome='BiblioSocial IoT')
+
+    @aplicacao.get('/api/dispositivo/comandos/proximo')
+    @exigir_dispositivo
+    def proximo_comando_dispositivo():
+        try:
+            comando = entregar_proximo_comando(
+                obter_banco(), request.args.get('dispositivo', '')
+            )
+            if comando is None:
+                return jsonify(comando=None, intervalo_ms=2000, servidor_em=int(time.time()))
+            return jsonify(
+                comando={
+                    'id': comando['id'],
+                    'tipo': comando['tipo'],
+                    'expira_em': comando['expira_em'],
+                },
+                intervalo_ms=2000,
+                servidor_em=int(time.time()),
+            )
+        except ErroComando as erro:
+            return jsonify(erro=str(erro)), 400
+
+    @aplicacao.post('/api/dispositivo/comandos/<identificador>/confirmar')
+    @exigir_dispositivo
+    def confirmar_comando_dispositivo(identificador):
+        dados = request.get_json(silent=True)
+        if not isinstance(dados, dict):
+            return jsonify(erro='Envie objeto JSON.'), 400
+        try:
+            comando = confirmar_comando(
+                obter_banco(), identificador, dados.get('dispositivo'),
+                dados.get('resultado'), dados.get('detalhe', ''),
+            )
+            return jsonify(comando=resposta_comando(comando))
+        except ErroComando as erro:
+            mensagem = str(erro)
+            codigo = 404 if mensagem == 'Comando não encontrado.' else 409
+            return jsonify(erro=mensagem), codigo
 
     @aplicacao.get('/exportar/<tipo>')
     @exigir_login

@@ -28,6 +28,8 @@ def configurar_ambiente() -> dict:
     dados = {
         'CHAVE_SESSAO': chave_sessao,
         'CHAVE_DISPOSITIVO': chave_dispositivo,
+        'DISPOSITIVO_PADRAO': anterior.get('DISPOSITIVO_PADRAO', 'esp32-principal'),
+        'PRAZO_COMANDO_SEGUNDOS': anterior.get('PRAZO_COMANDO_SEGUNDOS', '45'),
         'CAMINHO_BANCO': 'dados/bibliosocial.db',
         'HOST': '0.0.0.0',
         'PORTA': '5000',
