@@ -6,6 +6,7 @@
   <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="theme-color" content="#0f2744">
   <title>{% block titulo %}Painel{% endblock %} | BiblioSocial IoT</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
   <script defer src="{{ url_for('static', filename='js/aplicacao.js') }}"></script>
 </head>
@@ -13,7 +14,7 @@
 <div class="estrutura">
   <aside class="lateral" id="menu-lateral" aria-label="Navegação principal">
     <a class="marca" href="{{ url_for('painel') }}">
-      <img class="logo-bibliosocial logo-menu" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+      <img class="logo-bibliosocial logo-menu" src="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}" alt="BiblioSocial" width="2172" height="724">
     </a>
     <div class="rotulo-menu">Administração</div>
     <nav class="navegacao">
@@ -44,7 +45,9 @@
     <header class="barra-topo">
       <button class="botao-menu" type="button" aria-label="Abrir menu" aria-controls="menu-lateral" aria-expanded="false" id="alternar-menu">☰</button>
       <strong>{% block trilha %}Visão geral{% endblock %}</strong>
-      <div class="topo-direita">BiblioSocial IoT</div>
+      <a class="topo-direita" href="{{ url_for('painel') }}" aria-label="Ir para a visão geral">
+        <img class="logo-bibliosocial logo-topo" src="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}" alt="BiblioSocial" width="2172" height="724">
+      </a>
     </header>
     <main class="area-principal">
       {% with mensagens = get_flashed_messages(with_categories=true) %}

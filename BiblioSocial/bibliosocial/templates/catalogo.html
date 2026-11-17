@@ -6,13 +6,14 @@
   <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="theme-color" content="#0f2744">
   <title>Catálogo | BiblioSocial IoT</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
   <script defer src="{{ url_for('static', filename='js/aplicacao.js') }}"></script>
 </head>
 <body class="catalogo-publico">
   <header class="catalogo-cabecalho">
     <nav class="catalogo-navegacao" aria-label="Navegação do catálogo">
-      <img class="logo-bibliosocial logo-catalogo" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+      <img class="logo-bibliosocial logo-catalogo" src="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}" alt="BiblioSocial" width="2172" height="724">
       <a class="botao secundario" href="{{ url_for('login') }}">Área administrativa</a>
     </nav>
     <div class="catalogo-apresentacao">

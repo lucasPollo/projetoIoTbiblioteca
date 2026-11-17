@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Entrar | BiblioSocial IoT</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
 </head>
 <body class="fundo-login">
   <main class="login-caixa">
-    <img class="logo-bibliosocial logo-login" src="{{ url_for('static', filename='img/logo-bibliosocial.png') }}" alt="BiblioSocial">
+    <img class="logo-bibliosocial logo-login" src="{{ url_for('static', filename='img/logo-bibliosocial-transparente.png') }}" alt="BiblioSocial" width="2172" height="724">
     <h1>Acesso administrativo</h1>
     <p>Entre para gerenciar o acervo e as operações.</p>
     {% with mensagens = get_flashed_messages(with_categories=true) %}
